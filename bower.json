@@ -1,0 +1,19 @@
+{
+  "name": "bookmybinge",
+  "version": "0.0.1",
+  "authors": [
+    "Anirudh <ani.for.prez@gmail.com>"
+  ],
+  "main": "server.js",
+  "moduleType": [
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
