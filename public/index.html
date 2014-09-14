@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="BingeApp">
 <head>
+	<base href="/">
 	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
 	<title>Book My Binge</title>
+
 </head>
 <body>
+	<p>Book my Binge</p>
+	<input type="text">
 
+	<div ng-view></div>
+
+	<script src="components/angular/angular.min.js"></script>
+	<script src="components/angular-route/angular-route.min.js"></script>
 </body>
 </html>
