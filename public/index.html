@@ -8,9 +8,12 @@
 	<title>Book My Binge</title>
 
 </head>
-<body>
+<body ng-controller="MainCtrl">
 	<p>Book my Binge</p>
-	<input type="text">
+	<form ng-submit="getSearchResults()">
+		<input type="text" ng-model="searchString">
+	</form>
+
 
 	<!-- The main view container -->
 	<div ng-view></div>
@@ -19,11 +22,17 @@
 	<script src="components/angular/angular.min.js"></script>
 	<script src="components/angular-route/angular-route.min.js"></script>
 	<script src="components/angular-messages/angular-messages.min.js"></script>
+	<script src="components/angular-resource/angular-resource.min.js"></script>
 
 	<!-- The config file -->
 	<script src="app.js"></script>
 
 	<!-- Controllers -->
-	<script src="controllers/DetailCtrl.js"></script>
+	<script src="controllers/main.js"></script>
+	<script src="controllers/detail.js"></script>
+	<script src="controllers/search.js"></script>
+
+	<!-- Services -->
+	<script src="services/Show.js"></script>
 </body>
 </html>
