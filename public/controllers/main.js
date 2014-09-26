@@ -5,7 +5,4 @@ BingeApp.controller('MainCtrl', ['$scope', '$location', function($scope, $locati
 		if($scope.searchString)
 			$location.search('name', $scope.searchString).path('/search');
 	};
-	$scope.emptySearchBar = function()  {
-		$scope.searchString = '';
-	};
 }]);

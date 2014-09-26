@@ -3,6 +3,4 @@ angular.module('BingeApp')
 		Show.get({ id: $routeParams.id }, function(show) {
 			console.log(show);
 		});
-
-		$scope.emptySearchBar();
 	}]);
