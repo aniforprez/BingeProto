@@ -1,3 +1,4 @@
+// Dependencies
 var express  = require('express');
 var path     = require('path');
 var logger   = require('morgan');
@@ -5,21 +6,16 @@ var mongoose = require('mongoose');
 var request  = require('request');
 var xml2js = require('xml2js');
 
+// Middleware
 var app    = express();
 var router = express.Router();
 var xmlParser = xml2js.Parser({
 		explicitArray: false,
 		normalizeTags: true
 	});
-
 app.set('port', process.env.port || 3000);
 app.use(logger('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
-
-router.use(function(err, req, res, next) {
-	console.error(err.stack);
-	res.send(500, { message: err.message });
-});
 
 router.get('/api/search', function(req, res, next) {
 	var search = req.query.searchString
@@ -55,6 +51,11 @@ router.get('/api/show/:id', function(req, res, next) {
 
 router.get('*', function(req, res) {
 	res.redirect('/#' + req.originalUrl);
+});
+
+router.use(function(err, req, res, next) {
+	console.error(err.stack);
+	res.send(500, { message: err.message });
 });
 
 app.use('/', router);
