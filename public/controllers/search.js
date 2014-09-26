@@ -1,5 +1,5 @@
 angular.module('BingeApp')
-	.controller('SearchCtrl', ['$scope', '$location', 'Show', function($scope, $location, Show){
+	.controller('SearchCtrl', ['$scope', '$location', 'Search', function($scope, $location, Search){
 		var searchObj = $location.search();
-		$scope.searchResults = Show.query({ searchString: searchObj.name });
+		$scope.searchResults = Search.query({ searchString: searchObj.name });
 	}]);
