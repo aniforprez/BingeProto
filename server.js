@@ -7,6 +7,10 @@ var xml2js = require('xml2js');
 
 var app    = express();
 var router = express.Router();
+var xmlParser = xml2js.Parser({
+		explicitArray: false,
+		normalizeTags: true
+	});
 
 app.set('port', process.env.port || 3000);
 app.use(logger('dev'));
@@ -17,15 +21,11 @@ router.use(function(err, req, res, next) {
 	res.send(500, { message: err.message });
 });
 
-router.get('/api/show', function(req, res, next) {
+router.get('/api/search', function(req, res, next) {
 	var search = req.query.searchString
 					.toLowerCase()
 					.replace(/ /g, '_')
 					.replace(/[^\w-]+/g, '');
-	var xmlParser = xml2js.Parser({
-		explicitArray: false,
-		normalizeTags: true
-	});
 
 	request.get('http://thetvdb.com/api/GetSeries.php?seriesname=' + search, function(error, response, body) {
 		if(error)
@@ -41,7 +41,16 @@ router.get('/api/show', function(req, res, next) {
 });
 
 router.get('/api/show/:id', function(req, res, next) {
-	res.send({ message: "Here's data for show " + req.params.id });
+	var apiKey = 'F917081C46B60FCD';
+	var seriesID = req.params.id;
+
+	request.get('http://thetvdb.com/api/' + apiKey + '/series/' + seriesID + '/all/en.xml', function(error, response, body) {
+		if(error)
+			next(error);
+		xmlParser.parseString(body, function(error, result) {
+			res.send(result.data);
+		});
+	});
 });
 
 router.get('*', function(req, res) {
