@@ -8,6 +8,7 @@ var mongoose = require('mongoose');
 var request  = require('request');
 var xml2js   = require('xml2js');
 var mongoose = require('mongoose');
+var _        = require('lodash');
 
 ////////////////
 // Middleware //
@@ -47,21 +48,26 @@ var showSchema = new mongoose.Schema({
 		sortOrder: Number,
 		image    : String
 	}],
-	episodes: [{
-		episodeID    : Number,
-		seasonNumber : Number,
-		episodeNumber: Number,
-		name         : String,
-		director     : [String],
-		firstAired   : String,
-		guestStars   : [String],
-		imdb_id      : String,
-		language     : String,
-		overview     : String
+	seasons: [{
+		seasonNumber: Number,
+		seasonID    : Number,
+		episodes: [{
+			episodeID    : Number,
+			episodeNumber: Number,
+			name         : String,
+			director     : [String],
+			firstAired   : String,
+			guestStars   : [String],
+			imdb_id      : String,
+			language     : String,
+			overview     : String
+		}]
 	}]
 });
 
 var Show = mongoose.model('Show', showSchema);
+
+mongoose.connect('localhost');
 
 ////////////////////////////
 //Defining all the routes //
