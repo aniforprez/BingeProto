@@ -9,6 +9,12 @@ var request  = require('request');
 var xml2js   = require('xml2js');
 var mongoose = require('mongoose');
 var _        = require('lodash');
+var async    = require('async');
+
+var util = require('util');
+// Use the bottom log to log and entire object
+// console.log(util.inspect(myObject, false, null));
+
 
 ////////////////
 // Middleware //
@@ -41,7 +47,7 @@ var showSchema = new mongoose.Schema({
 	runtime       : String,
 	status        : String,
 	banner        : String,
-	posters       : String,
+	poster        : String,
 	actors: [{
 		name     : String,
 		role     : String,
@@ -59,7 +65,6 @@ var showSchema = new mongoose.Schema({
 			firstAired   : String,
 			guestStars   : [String],
 			imdb_id      : String,
-			language     : String,
 			overview     : String
 		}]
 	}]
@@ -100,13 +105,119 @@ router.get('/api/show/:id', function(req, res, next) {
 	var apiKey = 'F917081C46B60FCD';
 	var seriesID = req.params.id;
 
-	request.get('http://thetvdb.com/api/' + apiKey + '/series/' + seriesID + '/all/en.xml', function(error, response, body) {
+	var endShowQuery = function(error, show) {
 		if(error)
-			next(error);
-		xmlParser.parseString(body, function(error, result) {
-			res.send(result.data);
-		});
-	});
+			return next(error);
+		res.send(show);
+	};
+
+	async.waterfall([
+		function(callback) {
+			Show.findById(seriesID, function(err, show) {
+				if(err)
+					return next(err);
+				if(show)
+					endShowQuery(null, show);
+				if(!show)
+					callback(null, "Show not in DB");
+			});
+		},
+		function(message, callback) {
+			console.log(message);
+			request.get('http://thetvdb.com/api/' + apiKey + '/series/' + seriesID + '/all/en.xml', function(error, response, body) {
+				if(error)
+					next(error);
+				xmlParser.parseString(body, function(err, result) {
+					callback(err, result.data);
+				});
+			});
+		},
+		function(data, callback) {
+			var series = data.series;
+			var episodes = data.episode;
+
+			var show = new Show({
+				_id          : series.id,
+				name         : series.seriesname,
+				airsDayOfWeek: series.airs_dayofweek,
+				airsTime     : series.airs_time,
+				contentRating: series.contentrating,
+				firstAired   : series.firstaired,
+				genre        : series.genre.split('|').filter(Boolean),
+				imdb_id      : series.imdb_id,
+				language     : series.language,
+				network      : series.network,
+				overview     : series.overview,
+				runtime      : series.runtime,
+				status       : series.status,
+				banner       : series.banner,
+				poster       : series.poster,
+				actors       : [],
+				seasons      : []
+			});
+			_.each(episodes, function(episode) {
+				var episodeObj = {
+					episodeID    : episode.id,
+					episodeNumber: episode.episodenumber,
+					name         : episode.episodename,
+					director     : episode.director.split('|').filter(Boolean),
+					firstAired   : episode.firstaired,
+					guestStars   : episode.gueststars.split('|').filter(Boolean),
+					imdb_id      : episode.imdb_id,
+					overview     : episode.overview
+				};
+
+				var seasonIndex = _.findIndex(show.seasons, function(season) {
+					return season.seasonNumber == episode.seasonnumber;
+				});
+				if(seasonIndex > -1) {
+					show.seasons[seasonIndex].episodes.push(episodeObj);
+				}
+				else {
+					show.seasons.push({
+						seasonNumber: episode.seasonnumber,
+						seasonID    : episode.seasonid,
+						episodes    : [episodeObj]
+					});
+				}
+			});
+
+			callback(null, show);
+		},
+		function(show, callback) {
+			request.get('http://thetvdb.com/api/' + apiKey + '/series/' + seriesID + '/actors.xml', function(error, response, body) {
+				if(error)
+					next(error);
+				xmlParser.parseString(body, function(err, result) {
+					_.each(result.actors.actor, function(actor) {
+						show.actors.push({
+							name     : actor.name,
+							role     : actor.role,
+							image    : actor.image,
+							sortOrder: actor.sortorder
+						});
+					});
+
+					callback(err, show);
+				});
+			});
+		},
+		function(show, callback) {
+			show.save(function(err) {
+				if(err)
+					return next(err);
+				callback(null, "Saved successfully");
+			});
+		},
+		function(message, callback) {
+			console.log(message);
+			Show.findById(seriesID, function(err, showData) {
+				if(err)
+					return next(err);
+				callback(null, showData);
+			});
+		}
+	], endShowQuery);
 });
 
 // Default route
@@ -117,7 +228,7 @@ router.get('*', function(req, res) {
 // Error route
 router.use(function(err, req, res, next) {
 	console.error(err.stack);
-	res.send(500, { message: err.message });
+	res.status(500).send({ message: err.message });
 });
 
 // Telling express to use defined routes
