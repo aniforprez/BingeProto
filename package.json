@@ -3,6 +3,7 @@
   "description": "Book your TV show Binges",
   "version": "0.0.1",
   "dependencies": {
+    "agenda": "^0.6.19",
     "async": "^0.9.0",
     "bcrypt-nodejs": "0.0.3",
     "express": "^4.9.0",

@@ -10,6 +10,7 @@ var xml2js   = require('xml2js');
 var mongoose = require('mongoose');
 var _        = require('lodash');
 var async    = require('async');
+var agenda   = require('agenda')({ db: { address: 'localhost:27017/schedules' }});
 
 var util = require('util');
 // Use the bottom log to log and entire object
@@ -77,10 +78,10 @@ showSchema.methods.getShowData = function(seriesID, rootCallback) {
 
 	async.waterfall([
 		function(callback) {
-			console.log("Getting showdata");
+			console.log("Getting showdata for id " + seriesID);
 			request.get('http://thetvdb.com/api/' + apiKey + '/series/' + seriesID + '/all/en.xml', function(error, response, body) {
 				if(error)
-					next(error);
+					return console.error(error);
 				xmlParser.parseString(body, function(err, result) {
 					callback(err, result.data);
 				});
@@ -190,7 +191,7 @@ showSchema.methods.getShowData = function(seriesID, rootCallback) {
 
 var Show = mongoose.model('Show', showSchema);
 
-mongoose.connect('localhost');
+mongoose.connect('localhost/bookmybinge');
 
 ////////////////////////////
 //Defining all the routes //
@@ -260,4 +261,90 @@ app.use('/', router);
 ///////////////////////////
 app.listen(app.get('port'), function() {
 	console.log("Express server on port " + app.get('port'));
+});
+
+/////////////
+// Agenda  //
+/////////////
+
+agenda.define('fetch update', function(job, done) {
+	var apiKey = 'F917081C46B60FCD';
+
+	async.waterfall([
+		function(callback) {
+			console.log("Fetching updates");
+			request.get('http://thetvdb.com/api/' + apiKey + '/updates/updates_day.xml', function(error, response, body) {
+				if(error)
+					return console.error(error);
+				callback(null, body);
+			});
+		},
+		function(body, callback) {
+			console.log("Parsing xml");
+			xmlParser.parseString(body, function(error, result) {
+				if(error)
+					return console.error(error);
+				callback(null, result);
+			});
+		},
+		function(result, callback) {
+			console.log("Weeding out duplicates");
+			_.each(result.data.series, function(show) {
+				var duplicateIndex = _.findIndex(result.data.episode, function(episode) {
+					return episode.series == show.id;
+				});
+
+				if(duplicateIndex > -1) {
+					result.data.episode.splice(duplicateIndex, 1);
+				}
+			});
+			callback(null, result.data.series, result.data.episode);
+		},
+		function(shows, episodes, callback) {
+			async.eachSeries(shows, function(show, callback) {
+				Show.findByIdAndRemove(show.id, function(err) {
+					var tempShow = new Show({});
+					tempShow.getShowData(show.id, function() {
+						callback();
+					});
+				});
+			}, function(err) {
+				if(err)
+					return console.error(err);
+				else
+					callback(null, episodes);
+			});
+		},
+		function(episodes, callback) {
+			async.eachSeries(result.data.episode, function(episode, callback) {
+				Show.findByIdAndRemove(episode.series, function(err) {
+					var tempShow = new Show({});
+					tempShow.getShowData(episode.series, function() {
+						callback();
+					});
+				});
+			}, function(err) {
+				if(err)
+					return console.error(err);
+				else
+					callback(null, "Update was a success");
+			});
+		}
+	], function(err, message) {
+		if(err)
+			return console.error(err);
+		console.log(message);
+		done();
+	});
+});
+
+agenda.every('24 hours', 'fetch update');
+
+agenda.start();
+
+agenda.on('start', function(job) {
+	console.log("Updating has started");
+});
+agenda.on('complete', function(job) {
+	console.log("Updating has ended");
 });
