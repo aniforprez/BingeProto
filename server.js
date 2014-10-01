@@ -23,7 +23,9 @@ var util = require('util');
 var app       = express();
 var router    = express.Router();
 var xmlParser = xml2js.Parser({
+		// this option only makes the xmlparser return an array if there are multiple objects returned. otherwise ALL tags become arrays which is dumb
 		explicitArray: false,
+		// all xml tags are turned to lowercase object properties
 		normalizeTags: true
 	});
 app.set('port', process.env.port || 3000);
@@ -72,7 +74,8 @@ var showSchema = new mongoose.Schema({
 		}]
 	}]
 });
-showSchema.methods.getShowData = function(seriesID, rootCallback) {
+// This function gets TheTVDB data for seriesID and saves it into Mongo. YOu can also supply a callback
+showSchema.methods.fetchShowData = function(seriesID, rootCallback) {
 	var apiKey = 'F917081C46B60FCD';
 	var show   = this;
 
@@ -188,6 +191,36 @@ showSchema.methods.getShowData = function(seriesID, rootCallback) {
 		}
 	});
 };
+// This function gets the base series data which excludes the id
+// TODO: need to remove sending season data as it's WAY too big. This will be done after splitting the api to accommodate fetching a season
+showSchema.methods.getSeriesData = function() {
+	return {
+		name         : this.name,
+		airsDayOfWeek: this.airsDayOfWeek,
+		airsTime     : this.airsTime,
+		contentRating: this.contentRating,
+		firstAired   : this.firstAired,
+		genre        : this.genre,
+		imdb_id      : this.imdb_id,
+		language     : this.language,
+		network      : this.network,
+		overview     : this.overview,
+		runtime      : this.runtime,
+		status       : this.status,
+		banner       : this.banner,
+		poster       : this.poster,
+		noOfSeasons  : this.noOfSeasons,
+		noOfEpisodes : this.noOfEpisodes,
+		actors       : this.actors,
+		seasons      : this.seasons
+	};
+};
+// This function is supposed to send season data by getting seasonNumber
+// Currently pointless
+showSchema.methods.getSeasonData = function(seasonNumber) {
+	var seasonIndex = _.findIndex(seasons, { seasonNumber: seasonNumber });
+	return this.seasons[seasonIndex];
+};
 
 var Show = mongoose.model('Show', showSchema);
 
@@ -197,7 +230,9 @@ mongoose.connect('localhost/bookmybinge');
 //Defining all the routes //
 ////////////////////////////
 
-// Search route
+// Search route. Gets search results from TVDB and sends
+// TODO: incorporate advanced search by genre, letters etc
+// TODO: reduce dependency on external api and search internal db. probably only realistic if db is almost completely cloned
 router.get('/api/search', function(req, res, next) {
 	var search = req.query.searchString
 					.toLowerCase()
@@ -210,6 +245,8 @@ router.get('/api/search', function(req, res, next) {
 		xmlParser.parseString(body, function(error, result) {
 			if(!result.data.series)
 				return res.send([]);
+			// since explicitArray option doesn't make it an array if there's only one object, we need to detect since client can only accept arrays
+			// TODO: a single result redirects user to show/:id
 			if(result.data.series instanceof Array)
 				res.send(result.data.series);
 			else {
@@ -219,30 +256,39 @@ router.get('/api/search', function(req, res, next) {
 	});
 });
 
-// Show Details route
+// Show Details route. gets the details from mongo if it exists or calls the getSeasonData so it fetches and saves data from TVDB and sends
 router.get('/api/show/:id', function(req, res, next) {
 	var seriesID = req.params.id;
 
 	Show.findById(seriesID, function(err, show) {
 		if(err)
 			return next(err);
-		if(show)
-			res.send(show);
+		if(show) {
+			// if(req.query.season) {
+			// 	var seasonData = show.getSeasonData(req.query.season);
+			// 	if(seasonData)
+			// 		res.send(seasonData);
+			// 	else
+			// 		res.redirect('/show/' + seriesID);
+			// }
+			// else
+			// 	res.send(show.getSeriesData);
+			res.send(show.getSeriesData());
+		}
 		if(!show) {
 			var tempShow = new Show({});
-			tempShow.getShowData(seriesID, function() {
+			tempShow.fetchShowData(seriesID, function() {
 				Show.findById(seriesID, function(err, show) {
-					console.log("Finished fetching");
 					if(err)
 						return next(err);
-					res.send(show);
+					res.send(show.getSeriesData());
 				});
 			});
 		}
 	});
 });
 
-// Default route
+// Default route. this makes angular detect the proper route automatically
 router.get('*', function(req, res) {
 	res.redirect('/#' + req.originalUrl);
 });
@@ -267,6 +313,7 @@ app.listen(app.get('port'), function() {
 // Agenda  //
 /////////////
 
+// this agenda job fetches daily update_day from TVDB and adds all series data of seriesid mentioned from series and episodes
 agenda.define('fetch update', function(job, done) {
 	var apiKey = 'F917081C46B60FCD';
 
@@ -288,6 +335,7 @@ agenda.define('fetch update', function(job, done) {
 			});
 		},
 		function(result, callback) {
+			// this portion was necessary since sometimes both series and episode of a single show is updated so to avoid fetching same show data twice
 			console.log("Weeding out duplicates");
 			_.each(result.data.series, function(show) {
 				var duplicateIndex = _.findIndex(result.data.episode, function(episode) {
@@ -304,7 +352,7 @@ agenda.define('fetch update', function(job, done) {
 			async.eachSeries(shows, function(show, callback) {
 				Show.findByIdAndRemove(show.id, function(err) {
 					var tempShow = new Show({});
-					tempShow.getShowData(show.id, function() {
+					tempShow.fetchShowData(show.id, function() {
 						callback();
 					});
 				});
@@ -319,7 +367,7 @@ agenda.define('fetch update', function(job, done) {
 			async.eachSeries(result.data.episode, function(episode, callback) {
 				Show.findByIdAndRemove(episode.series, function(err) {
 					var tempShow = new Show({});
-					tempShow.getShowData(episode.series, function() {
+					tempShow.fetchShowData(episode.series, function() {
 						callback();
 					});
 				});
@@ -338,9 +386,10 @@ agenda.define('fetch update', function(job, done) {
 	});
 });
 
+// Update fetching runs daily
 agenda.every('24 hours', 'fetch update');
 
-agenda.start();
+// agenda.start();
 
 agenda.on('start', function(job) {
 	console.log("Updating has started");
