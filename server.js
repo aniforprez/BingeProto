@@ -12,7 +12,7 @@ var _        = require('lodash');
 var async    = require('async');
 var agenda   = require('agenda')({ db: { address: 'localhost:27017/schedules' }});
 
-var util = require('util');
+// var util = require('util');
 // Use the bottom log to log and entire object
 // console.log(util.inspect(myObject, false, null));
 
@@ -36,23 +36,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Database models //
 /////////////////////
 var showSchema = new mongoose.Schema({
-	_id           : Number,
-	name          : String,
-	airsDayOfWeek : String,
-	airsTime      : String,
-	contentRating : String,
-	firstAired    : String,
-	genre         : [String],
-	imdb_id       : String,
-	language      : String,
-	network       : String,
-	overview      : String,
-	runtime       : String,
-	status        : String,
-	banner        : String,
-	poster        : String,
-	noOfSeasons   : Number,
-	noOfEpisodes  : Number,
+	_id          : Number,
+	name         : String,
+	airsDayOfWeek: String,
+	airsTime     : String,
+	contentRating: String,
+	firstAired   : String,
+	genre        : [String],
+	imdb_id      : String,
+	language     : String,
+	network      : String,
+	overview     : String,
+	runtime      : String,
+	status       : String,
+	banner       : String,
+	poster       : String,
+	noOfSeasons  : Number,
+	noOfEpisodes : Number,
 	actors: [{
 		name     : String,
 		role     : String,
@@ -243,11 +243,11 @@ router.get('/api/search', function(req, res, next) {
 		if(error)
 			return next(error);
 		xmlParser.parseString(body, function(error, result) {
-			if(!result.data.series)
+			if(_.isEmpty(result.data))
 				return res.send([]);
 			// since explicitArray option doesn't make it an array if there's only one object, we need to detect since client can only accept arrays
 			// TODO: a single result redirects user to show/:id
-			if(result.data.series instanceof Array)
+			else if(result.data.series instanceof Array)
 				res.send(result.data.series);
 			else {
 				res.send([result.data.series]);

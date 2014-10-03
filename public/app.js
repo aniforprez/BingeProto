@@ -5,9 +5,8 @@ BingeApp.config(['$routeProvider', '$locationProvider', function($routeProvider,
 	$locationProvider.html5Mode(true);
 
 	$routeProvider
-		.when('/search', {
-			templateUrl: 'views/search.html',
-			controller : 'SearchCtrl'
+		.when('/', {
+			templateUrl: 'views/home.html'
 		})
 		.when('/show/:id', {
 			templateUrl: 'views/detail.html',

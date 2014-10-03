@@ -11,8 +11,10 @@
 <body ng-controller="MainCtrl">
 	<p>Book my Binge</p>
 	<form ng-submit="getSearchResults()">
-		<input type="text" ng-model="searchString">
+		<input type="text" ng-model="searchString" ng-change="getSearchResults()">
 	</form>
+
+	<li ng-repeat="show in searchResults"><a href="/show/{{show.seriesid}}"> {{show.seriesname}} </a></li>
 
 	<!-- The main view container -->
 	<div ng-view></div>
