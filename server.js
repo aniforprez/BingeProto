@@ -26,7 +26,9 @@ var xmlParser = xml2js.Parser({
 		// this option only makes the xmlparser return an array if there are multiple objects returned. otherwise ALL tags become arrays which is dumb
 		explicitArray: false,
 		// all xml tags are turned to lowercase object properties
-		normalizeTags: true
+		normalizeTags: true,
+		// this option sets empty tags to null
+		emptyTag: null
 	});
 app.set('port', process.env.port || 3000);
 app.use(logger('dev'));
@@ -243,8 +245,9 @@ router.get('/api/search', function(req, res, next) {
 		if(error)
 			return next(error);
 		xmlParser.parseString(body, function(error, result) {
-			if(_.isEmpty(result.data))
-				return res.send();
+			if(_.isNull(result.data)) {
+				res.send([]);
+			}
 			// since explicitArray option doesn't make it an array if there's only one object, we need to detect since client can only accept arrays
 			// TODO: a single result redirects user to show/:id
 			else if(result.data.series instanceof Array)
