@@ -66,6 +66,11 @@ input[type='text'] {
 	margin: 5px auto;
 	overflow: auto;
 }
+.search-results ul {
+	padding: 0;
+	margin: 0;
+	list-style-type: none;
+}
 .search-results li {
 	padding: 0.2em;
 	font-size: 1.1em;
@@ -84,4 +89,10 @@ input[type='text'] {
 	font-weight: bold;
 	cursor: pointer;
 	background: #FF9933;
+}
+.empty-results {
+	margin: 1em;
+	padding: 1.5em;
+	background: #FFFFFF;
+	color: #FF9933;
 }

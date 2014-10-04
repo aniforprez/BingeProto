@@ -18,8 +18,12 @@
 		<form ng-submit="getSearchResults()">
 			<input type="text" ng-model="searchString" ng-change="getSearchResults()" class="search-bar" placeholder="Search for a TV Show">
 		</form>
-		<div class="search-results" ng-show="searchResults.length !== 0 && searchString">
-			<li ng-repeat="show in searchResults" class="search-result" ng-click="goTo('/show/' + show.seriesid)" > {{show.seriesname}} </li>
+		<div class="search-results" ng-show="searching">
+			<ul>
+				<li ng-repeat="show in searchResults" class="search-result" ng-click="goTo('/show/' + show.seriesid)"> {{show.seriesname}} </li>
+			</ul>
+
+			<div class="empty-results" ng-show="searchResults.length < 1">NO RESULTS FOUND</div>
 		</div>
 	</div>
 
