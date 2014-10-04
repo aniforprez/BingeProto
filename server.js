@@ -244,7 +244,7 @@ router.get('/api/search', function(req, res, next) {
 			return next(error);
 		xmlParser.parseString(body, function(error, result) {
 			if(_.isEmpty(result.data))
-				return res.send([]);
+				return res.send();
 			// since explicitArray option doesn't make it an array if there's only one object, we need to detect since client can only accept arrays
 			// TODO: a single result redirects user to show/:id
 			else if(result.data.series instanceof Array)

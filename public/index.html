@@ -5,19 +5,27 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
+	<link rel="stylesheet" href="stylesheets/main.css">
+
+	<link href='http://fonts.googleapis.com/css?family=Lobster|Oxygen:400,700' rel='stylesheet' type='text/css'>
+
 	<title>Book My Binge</title>
 
 </head>
 <body ng-controller="MainCtrl">
-	<p>Book my Binge</p>
-	<form ng-submit="getSearchResults()">
-		<input type="text" ng-model="searchString" ng-change="getSearchResults()">
-	</form>
+	<div class="search-container" ng-class="{searching: searching, notsearching: !searching}">
+		<p class="site-name">book my binge</p>
+		<form ng-submit="getSearchResults()">
+			<input type="text" ng-model="searchString" ng-change="getSearchResults()" class="search-bar" placeholder="Search for a TV Show">
+		</form>
+		<div class="search-results" ng-show="searchResults.length !== 0 && searchString">
+			<li ng-repeat="show in searchResults" class="search-result" ng-click="goTo('/show/' + show.seriesid)" > {{show.seriesname}} </li>
+		</div>
+	</div>
 
-	<li ng-repeat="show in searchResults"><a href="/show/{{show.seriesid}}"> {{show.seriesname}} </a></li>
 
 	<!-- The main view container -->
-	<div ng-view></div>
+	<div ng-view class="main-view"></div>
 
 	<!-- The vendor scripts -->
 	<script src="components/angular/angular.min.js"></script>
